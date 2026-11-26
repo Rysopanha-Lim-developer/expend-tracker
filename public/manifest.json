@@ -2,7 +2,7 @@
   "name": "MoneyGuard Expense Tracker",
   "short_name": "MoneyGuard",
   "description": "Track your spending in dollars and riel.",
-  "start_url": "/",
+  "start_url": "/analyze",
   "display": "standalone",
   "background_color": "#10140d",
   "theme_color": "#10140d",
