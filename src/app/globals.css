@@ -239,6 +239,29 @@
     border-radius: 11px
   }
 
+  .period-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px
+  }
+
+  .range-select {
+    height: 40px;
+    max-width: 115px;
+    padding: 0 10px;
+    border: 1px solid rgba(232, 243, 215, .1);
+    border-radius: 11px;
+    background: #171d13;
+    color: #dce5d1;
+    font: 600 .74rem var(--body);
+    cursor: pointer
+  }
+
+  .range-select:focus-visible {
+    outline: 2px solid var(--lime);
+    outline-offset: 2px
+  }
+
   .segmented button,
   .currency-switch button {
     @apply h-8 cursor-pointer rounded-lg border-0 px-3 text-[.77rem] font-semibold;
@@ -1217,6 +1240,23 @@
 
     .segmented {
       width: 100%
+    }
+
+    .period-controls {
+      width: 100%;
+      gap: 7px
+    }
+
+    .period-controls .segmented {
+      flex: 1;
+      width: auto;
+      min-width: 0
+    }
+
+    .range-select {
+      max-width: 102px;
+      padding: 0 7px;
+      font-size: .68rem
     }
 
     .segmented button {

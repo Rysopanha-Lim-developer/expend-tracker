@@ -7,6 +7,7 @@ import { z } from "zod";
 
 type Currency = "USD" | "KHR";
 type Period = "day" | "week" | "month";
+type RangeOption = { value: number; label: string };
 export type TrackerRoute = "analyze" | "add" | "account";
 type Expense = {
   id: string;
@@ -29,6 +30,24 @@ const categories = [
   { name: "Health", color: "#e1bd63", icon: "+" },
   { name: "Other", color: "#7c8971", icon: "•••" },
 ];
+const rangeOptions: Record<Period, RangeOption[]> = {
+  day: [
+    { value: 1, label: "1 day" },
+    { value: 7, label: "7 days" },
+    { value: 30, label: "30 days" },
+  ],
+  week: [
+    { value: 1, label: "1 week" },
+    { value: 4, label: "4 weeks" },
+    { value: 12, label: "12 weeks" },
+  ],
+  month: [
+    { value: 1, label: "1 month" },
+    { value: 3, label: "3 months" },
+    { value: 6, label: "6 months" },
+    { value: 12, label: "12 months" },
+  ],
+};
 const localDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine((value) => {
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(year, month - 1, day);
@@ -129,6 +148,11 @@ function Icon({
 export default function TrackerApp({ route }: { route: TrackerRoute }) {
   const router = useRouter();
   const [period, setPeriod] = useState<Period>("week");
+  const [ranges, setRanges] = useState<Record<Period, number>>({
+    day: 1,
+    week: 1,
+    month: 1,
+  });
   const [currency, setCurrency] = useState<Currency>("USD");
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [ready, setReady] = useState(false);
@@ -208,7 +232,11 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
     }
   }, [expenses, ready]);
 
-  const bucketBoundaries = useMemo(() => makeBuckets([], period), [period]);
+  const range = ranges[period];
+  const bucketBoundaries = useMemo(
+    () => makeBuckets([], period, range),
+    [period, range],
+  );
   const visibleExpenses = useMemo(() => {
     const now = dateAtMidnight(today());
     const start = bucketBoundaries[0].start;
@@ -233,8 +261,8 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
     }))
     .filter((item) => item.amount > 0);
   const buckets = useMemo(
-    () => makeBuckets(visibleExpenses, period),
-    [visibleExpenses, period],
+    () => makeBuckets(visibleExpenses, period, range),
+    [visibleExpenses, period, range],
   );
   const maxBucket = Math.max(1, ...buckets.map((bucket) => bucket.amount));
   const recent = [...expenses].sort((a, b) => b.date.localeCompare(a.date));
@@ -379,26 +407,45 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
               <div className="overview-top">
                 <div>
                   <p className="eyebrow">SPENDING OVERVIEW</p>
-                  <h2>{periodLabel(period)}</h2>
+                  <h2>{periodLabel(period, range)}</h2>
                 </div>
-                <div
-                  className="segmented"
-                  role="group"
-                  aria-label="Choose time period"
-                >
-                  {(["day", "week", "month"] as Period[]).map((item) => (
-                    <button
-                      key={item}
-                      className={period === item ? "selected" : ""}
-                      onClick={() => setPeriod(item)}
-                    >
-                      {item === "day"
-                        ? "Daily"
-                        : item === "week"
-                          ? "Weekly"
-                          : "Monthly"}
-                    </button>
-                  ))}
+                <div className="period-controls">
+                  <div
+                    className="segmented"
+                    role="group"
+                    aria-label="Choose time period"
+                  >
+                    {(["day", "week", "month"] as Period[]).map((item) => (
+                      <button
+                        key={item}
+                        className={period === item ? "selected" : ""}
+                        onClick={() => setPeriod(item)}
+                      >
+                        {item === "day"
+                          ? "Daily"
+                          : item === "week"
+                            ? "Weekly"
+                            : "Monthly"}
+                      </button>
+                    ))}
+                  </div>
+                  <select
+                    className="range-select"
+                    aria-label="Choose date range"
+                    value={range}
+                    onChange={(event) =>
+                      setRanges((current) => ({
+                        ...current,
+                        [period]: Number(event.target.value),
+                      }))
+                    }
+                  >
+                    {rangeOptions[period].map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="overview-total">
@@ -439,12 +486,7 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
                   <div>
                     <p className="eyebrow">SPENDING TREND</p>
                     <h3>
-                      Across{" "}
-                      {period === "day"
-                        ? "the last 7 days"
-                        : period === "week"
-                          ? "the last 6 weeks"
-                          : "the last 6 months"}
+                      Across {periodLabel(period, range).toLowerCase()}
                     </h3>
                   </div>
                   <span className="chart-badge">
@@ -458,7 +500,7 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
                     aria-label="Bar chart of spending by period"
                   >
                     {buckets.map((bucket) => (
-                      <div className="bar-column" key={bucket.label}>
+                      <div className="bar-column" key={bucket.start.toISOString()}>
                         <span className="bar-value">
                           {bucket.amount
                             ? compactMoney(bucket.amount, currency)
@@ -832,14 +874,13 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
   );
 }
 
-function periodLabel(period: Period) {
-  if (period === "day") return "Last 7 days";
-  if (period === "week") return "Last 6 weeks";
-  return "Last 6 months";
+function periodLabel(period: Period, range: number) {
+  if (period === "day") return range === 1 ? "Today" : `Last ${range} days`;
+  if (period === "week") return range === 1 ? "This week" : `Last ${range} weeks`;
+  return range === 1 ? "This month" : `Last ${range} months`;
 }
 
-function makeBuckets(expenses: Expense[], period: Period) {
-  const count = period === "day" ? 7 : 6;
+function makeBuckets(expenses: Expense[], period: Period, count: number) {
   const todayDate = dateAtMidnight(today());
   return Array.from({ length: count }, (_, index) => {
     const offset = count - index - 1;
@@ -857,7 +898,11 @@ function makeBuckets(expenses: Expense[], period: Period) {
       end,
       label:
         period === "day"
-          ? start.toLocaleDateString("en-US", { weekday: "short" })
+          ? count === 1
+            ? "Today"
+            : start.toLocaleDateString("en-US", {
+                ...(count > 7 ? { month: "short", day: "numeric" } : { weekday: "short" }),
+              })
           : start.toLocaleDateString("en-US", {
               month: "short",
               ...(period === "week" ? { day: "numeric" } : {}),
