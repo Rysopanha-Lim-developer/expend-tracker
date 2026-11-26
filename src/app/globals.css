@@ -293,7 +293,7 @@
   }
 
   .charts-grid {
-    @apply mt-[17px] grid grid-cols-[minmax(0, 1.55fr)_minmax(300px, 1fr)] gap-4;
+    @apply mt-[17px] grid gap-4;
     display: grid;
     grid-template-columns: minmax(0, 1.55fr) minmax(300px, 1fr);
     gap: 16px;
@@ -441,7 +441,7 @@
   }
 
   .donut-layout {
-    @apply grid h-[195px] grid-cols-[145px_minmax(0, 1fr)] items-center gap-[14px];
+    @apply grid h-[195px] items-center gap-[14px];
     height: 195px;
     display: grid;
     grid-template-columns: 145px minmax(0, 1fr);
@@ -483,7 +483,7 @@
   }
 
   .legend-row {
-    @apply grid grid-cols-[8px_minmax(50px, 1fr)_auto] items-center gap-2 text-[.72rem];
+    @apply grid items-center gap-2 text-[.72rem];
     display: grid;
     grid-template-columns: 8px minmax(50px, 1fr) auto;
     align-items: center;
