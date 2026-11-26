@@ -139,6 +139,7 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
   const [message, setMessage] = useState("");
   const [messageIsSuccess, setMessageIsSuccess] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   useEffect(() => {
     let storedExpenses: Expense[] = [];
@@ -329,6 +330,7 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
 
   return (
     <div className="app-shell">
+      <div inert={showClearConfirm}>
       <header className="topbar">
         <button
           className="brand"
@@ -741,14 +743,7 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
                 </div>
                 <button
                   className="outline-button danger-button"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        "Clear all expenses stored in this browser?",
-                      )
-                    )
-                      setExpenses([]);
-                  }}
+                  onClick={() => setShowClearConfirm(true)}
                 >
                   Clear data
                 </button>
@@ -782,6 +777,57 @@ export default function TrackerApp({ route }: { route: TrackerRoute }) {
           </Link>
         ))}
       </nav>
+      </div>
+      {showClearConfirm && (
+        <div className="confirm-overlay">
+          <section
+            className="confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="clear-expenses-title"
+            aria-describedby="clear-expenses-description"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") setShowClearConfirm(false);
+              if (event.key === "Tab") {
+                const buttons = event.currentTarget.querySelectorAll("button");
+                const first = buttons[0];
+                const last = buttons[buttons.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault();
+                  last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault();
+                  first.focus();
+                }
+              }
+            }}
+          >
+            <span className="confirm-icon" aria-hidden="true">!</span>
+            <h2 id="clear-expenses-title">Clear all expenses?</h2>
+            <p id="clear-expenses-description">
+              This removes every expense stored in this browser. This action cannot be undone.
+            </p>
+            <div className="confirm-actions">
+              <button
+                className="outline-button confirm-cancel"
+                autoFocus
+                onClick={() => setShowClearConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="outline-button danger-button confirm-delete"
+                onClick={() => {
+                  setExpenses([]);
+                  setShowClearConfirm(false);
+                }}
+              >
+                Clear expenses
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
